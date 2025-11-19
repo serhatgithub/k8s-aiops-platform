@@ -1,0 +1,88 @@
+# --- GO KOBAY APP ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kobay-app
+  labels:
+    app: kobay-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kobay-app
+  template:
+    metadata:
+      labels:
+        app: kobay-app
+    spec:
+      containers:
+      - name: demo
+        image: demoApp:v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-service
+  labels:
+    app: demoApp
+spec:
+  selector:
+    app: demoApp
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+# Prometheus'un Go servisini görmesi için Monitor ayarı
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: demo-monitor
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: demoApp
+  endpoints:
+  - port: targetPort # Service port ismi ile eşleşmeli, yukarıda 8080 isimsiz kalmış, düzeltelim.
+    targetPort: 8080 
+    path: /metrics
+    interval: 5s
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai
+  labels:
+    app: ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai
+  template:
+    metadata:
+      labels:
+        app: ai
+    spec:
+      containers:
+      - name: aiCont
+        image: aiİmage:v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aiService
+spec:
+  selector:
+    app: ai
+  ports:
+    - port: 80
+      targetPort: 5000
+  type: NodePort
