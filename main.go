@@ -14,18 +14,17 @@ import (
 )
 
 var (
-	// Metrikler
 	requestCount = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "kobay_requests_total",
-			Help: "Toplam HTTP istek sayisi",
+			Name: "demo_requests_total", // DÜZELTİLDİ: Artık 'demo' ismiyle yayın yapıyor
+			Help: "Toplam istek sayisi",
 		},
 		[]string{"status"},
 	)
 	errorRateGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Name: "kobay_error_rate_setting",
-			Help: "Su anki hata orani ayari",
+			Name: "demo_error_rate",
+			Help: "Hata orani ayari",
 		},
 	)
 	currentErrorRate int
@@ -39,7 +38,7 @@ func init() {
 }
 
 func main() {
-	// Ana Sayfa (Trafik)
+	// Ana Sayfa Handler
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		mu.RLock()
 		rate := currentErrorRate
@@ -48,15 +47,15 @@ func main() {
 		if rand.Intn(100) < rate {
 			requestCount.WithLabelValues("500").Inc()
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, "Hata! Sistem bozuk (500).")
+			fmt.Fprint(w, "Hata! Sistem patladi (500).")
 		} else {
 			requestCount.WithLabelValues("200").Inc()
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, "Basarili. Sistem stabil (200).")
+			fmt.Fprint(w, "Stabil. Her sey yolunda (200).")
 		}
 	})
 
-	// Kaos Butonu (/set-error/50 gibi)
+	// Hata Ayarlama Handler
 	http.HandleFunc("/set-error/", func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(r.URL.Path, "/")
 		if len(parts) < 3 { return }
@@ -70,6 +69,6 @@ func main() {
 	})
 
 	http.Handle("/metrics", promhttp.Handler())
-	fmt.Println("Go Kobay Servisi 8080 portunda calisiyor...")
+	fmt.Println("Go Demo App 8080 portunda calisiyor...")
 	http.ListenAndServe(":8080", nil)
 }

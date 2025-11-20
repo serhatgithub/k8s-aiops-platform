@@ -5,15 +5,15 @@ import uvicorn
 
 app = FastAPI()
 
-# Cluster içindeki Prometheus'a bağlanır
+# Cluster içindeki Prometheus servisine bağlan
 prom = PrometheusConnect(url="http://prometheus-operated.monitoring.svc.cluster.local:9090", disable_ssl=True)
 
 @app.get("/analiz")
 def analyze_risk():
     try:
-        # PromQL ile son 1 dakikayı sorgula
-        q_err = 'rate(kobay_requests_total{status="500"}[1m])'
-        q_tot = 'rate(kobay_requests_total[1m])'
+        # SORGULAR DÜZELTİLDİ: 'sum' eklendi ve 'demo' ismine geçildi
+        q_err = 'sum(rate(demo_requests_total{status="500"}[1m]))'
+        q_tot = 'sum(rate(demo_requests_total[1m]))'
         
         d_err = prom.custom_query(q_err)
         d_tot = prom.custom_query(q_tot)
@@ -21,19 +21,18 @@ def analyze_risk():
         val_err = float(d_err[0]['value'][1]) if d_err else 0
         val_tot = float(d_tot[0]['value'][1]) if d_tot else 0.0001
         
-        # Pandas ile hesapla
         df = pd.DataFrame({'hata': [val_err], 'toplam': [val_tot]})
         oran = (df['hata'][0] / df['toplam'][0]) * 100
         
-        # Risk Skoru (Basit Yapay Zeka Mantığı)
-        risk = min(100, oran * 10)
+        # Risk Skoru Hesaplama
+        risk = min(100, oran * 1.5) 
         
         karar = "STABIL"
         if risk > 50: karar = "KRITIK - ROLLBACK"
         elif risk > 10: karar = "UYARI"
         
         return {
-            "Analiz": {
+            "YapayZeka_Analizi": {
                 "Hata_Orani": f"%{oran:.2f}",
                 "Risk_Skoru": f"{risk:.2f} / 100",
                 "Karar": karar
